@@ -138,14 +138,34 @@ type unit struct {
 	traits []trait.Trait
 }
 
-func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, error) {
+// best is, for one trait, the most severe pass-1 answer across units (by
+// tier, then violation probability), and the unit it came from.
+type best struct {
+	probs  map[Classification]float64
+	unit   int
+	cached bool
+}
+
+// classified is the outcome of pass 1 for one file.
+type classified struct {
+	units []unit
+	bests map[string]best
+	// order lists the traits that were answered, in the order first answered.
+	order []string
+	// errs are problems confined to this file (e.g. a hunk too large).
+	errs []error
+}
+
+// classify gates opts.Traits for f and asks pass 1 for the rest. With
+// anyStatus, candidate traits are asked too (eval); otherwise only active
+// ones (check). The returned error is a provider failure or cancellation.
+func classify(ctx context.Context, opts Options, fr *fileResult, f diff.File, anyStatus bool) (classified, error) {
 	path := f.Path()
-	fr := fileResult{path: path}
 	changed := f.ChangedText()
 
 	var hunkTraits, fileTraits []trait.Trait
 	for _, t := range opts.Traits {
-		if t.Status != trait.StatusActive || !t.Matches(path) || !t.Gate(changed) {
+		if (!anyStatus && t.Status != trait.StatusActive) || !t.Matches(path) || !t.Gate(changed) {
 			fr.skipped.Gated++
 			continue
 		}
@@ -159,52 +179,52 @@ func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, erro
 	limits := opts.Model.Limits()
 	maxBytes := cmp.Or(limits.MaxInputBytes, defaultMaxInputBytes)
 
-	var units []unit
-	var errs []error
+	c := classified{bests: map[string]best{}}
 	if len(hunkTraits) > 0 {
 		groups, err := groupHunks(path, f.Hunks, maxBytes)
 		if err != nil {
-			errs = append(errs, err)
+			c.errs = append(c.errs, err)
 		}
 		for _, g := range groups {
-			units = append(units, unit{input: g, traits: hunkTraits})
+			c.units = append(c.units, unit{input: g, traits: hunkTraits})
 		}
 	}
 	if len(fileTraits) > 0 {
 		in, err := fileInput(opts.ReadFile, f, maxBytes)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("%d file-scope trait(s) skipped: %w", len(fileTraits), err))
+			c.errs = append(c.errs, fmt.Errorf("%d file-scope trait(s) skipped: %w", len(fileTraits), err))
 		} else {
-			units = append(units, unit{input: in, traits: fileTraits})
+			c.units = append(c.units, unit{input: in, traits: fileTraits})
 		}
 	}
 
-	// best holds, per trait, the most severe answer across units (by tier,
-	// then violation probability), and the unit it came from.
-	type best struct {
-		probs  map[Classification]float64
-		unit   int
-		cached bool
-	}
-	bests := map[string]best{}
-	var order []string
-
-	for ui, u := range units {
-		answers, cached, err := ask(ctx, opts, &fr, u.input, questionsFor(u.traits), limits.MaxQuestions)
+	for ui, u := range c.units {
+		answers, cached, err := ask(ctx, opts, fr, u.input, questionsFor(u.traits), limits.MaxQuestions)
 		if err != nil {
-			return fr, err
+			return c, err
 		}
 		for i, t := range u.traits {
 			p := classProbs(answers[i])
-			b, seen := bests[t.Name]
+			b, seen := c.bests[t.Name]
 			if !seen {
-				order = append(order, t.Name)
+				c.order = append(c.order, t.Name)
 			}
 			if !seen || moreSevere(t, p, b.probs) {
-				bests[t.Name] = best{probs: p, unit: ui, cached: cached[i]}
+				c.bests[t.Name] = best{probs: p, unit: ui, cached: cached[i]}
 			}
 		}
 	}
+	return c, nil
+}
+
+func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, error) {
+	fr := fileResult{path: f.Path()}
+	c, err := classify(ctx, opts, &fr, f, false)
+	if err != nil {
+		return fr, err
+	}
+	units, bests, order, errs := c.units, c.bests, c.order, c.errs
+	limits := opts.Model.Limits()
 
 	// Pass 2: localise likely violations within multi-hunk units. An
 	// inconclusive answer has no violation to point at.
