@@ -382,13 +382,40 @@ func Install(path string, cmds []Command, apply bool, now time.Time) (Result, er
 	}
 	if exists {
 		res.Backup = path + ".bak-" + now.Format("20060102-150405")
-		if err := os.WriteFile(res.Backup, data, mode); err != nil {
+		if err := writeNew(res.Backup, data, mode); err != nil {
 			return res, err
 		}
 	}
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, res.Content, mode); err != nil {
+	// A fresh temp file (created 0600, then set to mode before any content
+	// is written) so a leftover file cannot lend its permissions.
+	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".*.tmp")
+	if err != nil {
 		return res, err
 	}
-	return res, os.Rename(tmp, path)
+	defer os.Remove(tmp.Name())
+	if err := tmp.Chmod(mode); err != nil {
+		tmp.Close()
+		return res, err
+	}
+	if _, err := tmp.Write(res.Content); err != nil {
+		tmp.Close()
+		return res, err
+	}
+	if err := tmp.Close(); err != nil {
+		return res, err
+	}
+	return res, os.Rename(tmp.Name(), path)
+}
+
+// writeNew creates path, which must not exist, with mode and writes data.
+func writeNew(path string, data []byte, mode fs.FileMode) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }

@@ -170,3 +170,34 @@ func TestOurs(t *testing.T) {
 		}
 	}
 }
+
+func TestInstallIgnoresLeftoverFilesPermissions(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "settings.json")
+	os.WriteFile(path, []byte(existing), 0o600)
+	os.WriteFile(path+".tmp", []byte("stale"), 0o644) // leftover from older versions
+	now := time.Date(2026, 11, 11, 9, 30, 0, 0, time.UTC)
+	backup := path + ".bak-20261111-093000"
+
+	// An existing backup destination is refused, and nothing is changed.
+	os.WriteFile(backup, []byte("older backup"), 0o644)
+	if _, err := Install(path, Commands("claude", ""), true, now); err == nil {
+		t.Fatal("overwrote an existing backup")
+	}
+	if data, _ := os.ReadFile(path); string(data) != existing {
+		t.Fatal("settings changed after a refused backup")
+	}
+	if data, _ := os.ReadFile(backup); string(data) != "older backup" {
+		t.Fatal("existing backup was overwritten")
+	}
+	os.Remove(backup)
+
+	if _, err := Install(path, Commands("claude", ""), true, now); err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{path, backup} {
+		if fi, err := os.Stat(p); err != nil || fi.Mode().Perm() != 0o600 {
+			t.Errorf("%s mode = %v, want 0600", p, fi.Mode().Perm())
+		}
+	}
+}
