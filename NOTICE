@@ -1,0 +1,27 @@
+traits
+Copyright (c) 2026 talbet. Licensed under the MIT License (see LICENSE).
+
+This product includes or adapts material from the following projects.
+
+madxmike/gallant
+  https://github.com/madxmike/gallant
+  License: MIT
+  Code adapted (the files say so in comments): the provider registry and
+  provider error handling, HTTP retries, the System One and Cloudflare wire
+  mappings, and trait frontmatter parsing.
+  Design followed: Unix CLI conventions and exit codes, help topics, the
+  --diff splitter and its fuzz targets.
+
+crosshatch/traits
+  https://github.com/crosshatch/traits
+  License: Apache License, Version 2.0
+  Adapted: the trait file format (subject, requirement, applicability,
+  purpose, context), the four-way classification (compliant, violation,
+  not-applicable, inconclusive), and assessment instruction text used in the
+  compiled questions, modified for this tool. A copy of the Apache License 2.0
+  is available at https://www.apache.org/licenses/LICENSE-2.0.
+
+Ideas (no code copied) from:
+  Haizzz/lentil         https://github.com/Haizzz/lentil
+  ckorhonen/jev-lint    https://github.com/ckorhonen/jev-lint
+  almcc/slop-linter     https://github.com/almcc/slop-linter

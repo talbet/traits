@@ -69,6 +69,14 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		code, err = runDerive(ctx, args[1:], stdin, stdout, stderr)
 	case "explain":
 		err = runExplain(args[1:], stdout, stderr)
+	case "hook":
+		code, err = runHook(ctx, args[1:], stdin, stdout, stderr)
+	case "recheck":
+		code, err = runRecheck(ctx, args[1:], stdin, stdout, stderr)
+	case "findings":
+		code, err = runFindings(ctx, args[1:], stdin, stdout, stderr)
+	case "skill":
+		code, err = runSkill(ctx, args[1:], stdin, stdout, stderr)
 	case "version", "--version":
 		fmt.Fprintln(stdout, "traits", version)
 	case "help", "-h", "--help":
@@ -172,6 +180,7 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 	if err != nil {
 		return exitProvider, err
 	}
+	logFindings(dir, rep, files, state.SourceCheck, "")
 	if len(inputErrs) > 0 {
 		rep.Errors = append(inputErrs, rep.Errors...)
 		rep.Summary = check.Summarize(rep, len(traits))
