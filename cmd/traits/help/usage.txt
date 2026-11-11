@@ -5,6 +5,7 @@ Usage:
   traits check [options] --diff                  read a unified diff from stdin
   traits check [options] --assume-filename NAME  read one file from stdin
   traits explain [--rules dir] [trait...]        print the questions sent to the model
+  traits eval [options]                          score traits on <name>.cases.jsonl (traits eval -h)
   traits version
 
 A trait is a Markdown file in .agents/traits/<name>.md:
