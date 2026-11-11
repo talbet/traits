@@ -5,6 +5,11 @@ Usage:
   traits check [options] --diff                  read a unified diff from stdin
   traits check [options] --assume-filename NAME  read one file from stdin
   traits explain [--rules dir] [trait...]        print the questions sent to the model
+  traits hook claude|codex [options]             agent PostToolUse hook (payload on stdin)
+  traits hook install claude|codex [--apply] [--scope project|user]
+  traits recheck [options]                       Stop hook: record fixed/kept outcomes
+  traits findings [--summary] [--format text|json]
+  traits skill install [--agent claude|codex|opencode] [--apply]
   traits version
 
 A trait is a Markdown file in .agents/traits/<name>.md:
@@ -41,12 +46,32 @@ Output:
   or above the trait's fix threshold, default 0.8) or "review" (at or above
   0.5, or the model could not decide).
 
+Hooks:
+  `traits hook claude` (Write|Edit|MultiEdit) and `traits hook codex`
+  (apply_patch) check the edit just made and report up to --top (default 5)
+  findings as PostToolUse additionalContext JSON. `traits recheck` (Stop)
+  re-checks files with open findings from the session and logs whether they
+  were fixed or kept. Both fail open: on any error, missing traits or
+  credentials, or after $TRAITS_HOOK_TIMEOUT (default 8s), they print
+  nothing and exit 0. Hook options: --provider, --model, --rules, --timeout,
+  --top. Set TRAITS_HOOK_DEBUG=1 to see why a hook stayed silent (stderr).
+
+  `traits hook install` merges the hooks into .claude/settings.json or
+  .codex/hooks.json (--scope user: under your home directory). It is a dry
+  run unless --apply; existing files are backed up to <file>.bak-<time>.
+
+Findings log:
+  check, hook and recheck append to .agents/traits/.cache/findings.jsonl.
+  `traits findings --summary` shows per trait how often it was flagged,
+  fixed and kept; a high keep rate suggests a trait worth refining.
+
 Exit status:
   0    checks ran and nothing reached --fail-on
   1    a finding reached --fail-on, or a file could not be fully checked
   2    the command line, traits directory, or provider configuration is unusable
   3    the provider failed (unreachable, refused, malformed answer)
   130  interrupted
+  hook and recheck always exit 0.
 
 Examples:
   git diff HEAD | traits check --diff --format summary

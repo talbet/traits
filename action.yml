@@ -1,0 +1,124 @@
+name: traits check
+description: Check a pull request's changes against the repository's traits (.agents/traits) with a decision model.
+author: talbet
+branding:
+  icon: check-square
+  color: blue
+
+inputs:
+  version:
+    description: traits release to install, e.g. "0.1.0" or "latest".
+    default: latest
+  provider:
+    description: Decision-model provider (openai, openrouter, systemone, opencode, cloudflare). Pass its credentials as job env, e.g. OPENAI_API_KEY.
+    default: openai
+  model:
+    description: "Model name (default: the provider's)."
+    default: ""
+  fail-on:
+    description: Fail the step on a finding of this tier (fix, review, never).
+    default: fix
+  format:
+    description: Output format (sarif, json, text, summary).
+    default: sarif
+  output:
+    description: File the results are written to.
+    default: traits.sarif
+  base-ref:
+    description: Git ref to diff against (base...HEAD). Default - the pull request's base branch, else HEAD~1. Check out with fetch-depth 0.
+    default: ""
+  upload-sarif:
+    description: Upload the SARIF file to GitHub code scanning (needs format sarif and security-events write permission).
+    default: "false"
+
+outputs:
+  exit-code:
+    description: Exit status of traits check (0 clean, 1 findings, 2 configuration, 3 provider).
+    value: ${{ steps.check.outputs.exit-code }}
+  output:
+    description: Path of the results file.
+    value: ${{ inputs.output }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install traits
+      shell: bash
+      env:
+        TRAITS_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        case "$RUNNER_OS" in
+          Linux) os=linux ;;
+          macOS) os=darwin ;;
+          Windows) os=windows ;;
+          *) echo "unsupported runner OS $RUNNER_OS" >&2; exit 1 ;;
+        esac
+        case "$RUNNER_ARCH" in
+          X64) arch=amd64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "unsupported runner arch $RUNNER_ARCH" >&2; exit 1 ;;
+        esac
+        ext=tar.gz
+        if [ "$os" = windows ]; then ext=zip; fi
+        archive="traits_${os}_${arch}.${ext}"
+        if [ "$TRAITS_VERSION" = latest ]; then
+          base="https://github.com/talbet/traits/releases/latest/download"
+        else
+          base="https://github.com/talbet/traits/releases/download/v${TRAITS_VERSION#v}"
+        fi
+        dir="$RUNNER_TEMP/traits-bin"
+        mkdir -p "$dir"
+        cd "$dir"
+        curl -fsSL --retry 3 -o "$archive" "$base/$archive"
+        curl -fsSL --retry 3 -o checksums.txt "$base/checksums.txt"
+        if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
+        grep " ${archive}\$" checksums.txt | $sum -c -
+        if [ "$ext" = zip ]; then unzip -oq "$archive"; else tar -xzf "$archive"; fi
+        echo "$dir" >> "$GITHUB_PATH"
+
+    - name: Check changes
+      id: check
+      shell: bash
+      env:
+        TRAITS_PROVIDER: ${{ inputs.provider }}
+        TRAITS_MODEL: ${{ inputs.model }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_BASE: ${{ inputs.base-ref }}
+      run: |
+        set -uo pipefail
+        base="$INPUT_BASE"
+        if [ -z "$base" ] && [ -n "${GITHUB_BASE_REF:-}" ]; then
+          git fetch --no-tags --quiet origin "$GITHUB_BASE_REF" || true
+          base="origin/$GITHUB_BASE_REF"
+        fi
+        if [ -z "$base" ]; then base="HEAD~1"; fi
+        traits version
+        git diff --no-color "$base...HEAD" | traits check --diff --format "$INPUT_FORMAT" --fail-on "$INPUT_FAIL_ON" > "$INPUT_OUTPUT"
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        if [ "$INPUT_FORMAT" = summary ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+          cat "$INPUT_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+        fi
+        exit 0
+
+    - name: Upload SARIF
+      if: ${{ always() && inputs.upload-sarif == 'true' && inputs.format == 'sarif' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.output }}
+        category: traits
+
+    - name: Report result
+      shell: bash
+      env:
+        CODE: ${{ steps.check.outputs.exit-code }}
+      run: |
+        case "$CODE" in
+          0) echo "traits: no findings at or above the fail-on tier" ;;
+          1) echo "::error::traits: findings at or above the fail-on tier (see the results file or code scanning)"; exit 1 ;;
+          2) echo "::error::traits: configuration problem (traits directory, provider or credentials)"; exit 2 ;;
+          *) echo "::error::traits: the provider failed (exit $CODE)"; exit "$CODE" ;;
+        esac
