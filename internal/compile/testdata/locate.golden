@@ -1,0 +1,9 @@
+name: locate:colocate-small-domain-errors
+type: choice
+options:
+  h1: lines 11-12
+  h2: removed lines near 42
+instructions:
+This change to input.path likely violates this trait:
+{"name":"colocate-small-domain-errors","subject":"Error types defined for a single domain module","requirement":"Define small domain error types in the module that raises them, not in a shared errors file."}
+Which hunk in input.hunks most clearly shows the violation?

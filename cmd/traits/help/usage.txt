@@ -1,0 +1,54 @@
+traits - check changes against your project's traits with a decision model
+
+Usage:
+  traits check [options] path...
+  traits check [options] --diff                  read a unified diff from stdin
+  traits check [options] --assume-filename NAME  read one file from stdin
+  traits explain [--rules dir] [trait...]        print the questions sent to the model
+  traits version
+
+A trait is a Markdown file in .agents/traits/<name>.md:
+
+  ---
+  name: colocate-domain-errors
+  subject: Small domain-specific error types.
+  requirement: Define them beside the operations that produce them.
+  purpose: Keep error definitions close to their meaning.
+  appliesTo: ["*.ts"]          # optional path globs
+  when: ["extends Error"]      # optional regexes over changed lines
+  fix: Move the type into the module that throws it.   # optional
+  scope: hunk                  # hunk (default) or file
+  status: active               # active (default) or candidate
+  ---
+  Optional context: examples, diffs, references.
+
+Check options:
+  --provider name     openai (default), openrouter, systemone, opencode, cloudflare
+                      ($TRAITS_PROVIDER)
+  --model name        model ($TRAITS_MODEL; default: the provider's)
+  --rules dir         traits directory ($TRAITS_DIR; default .agents/traits at the repo root)
+  --format f          json (default), text, summary, sarif
+  --fail-on tier      exit 1 on a finding of this tier: fix (default), review, never
+  --jobs n            files checked concurrently (default 8)
+  --timeout d         per-request timeout including retries (default 30s)
+  --retries n         retries on 429 and 5xx (default 2; use 0 in hooks)
+  --repo dir          repository root for reading post-change files
+  --no-cache          bypass the answer cache in .agents/traits/.cache
+
+Output:
+  Results go to stdout in the chosen format; the one-line summary and file
+  errors go to stderr. Findings have a tier: "fix" (violation probability at
+  or above the trait's fix threshold, default 0.8) or "review" (at or above
+  0.5, or the model could not decide).
+
+Exit status:
+  0    checks ran and nothing reached --fail-on
+  1    a finding reached --fail-on, or a file could not be fully checked
+  2    the command line, traits directory, or provider configuration is unusable
+  3    the provider failed (unreachable, refused, malformed answer)
+  130  interrupted
+
+Examples:
+  git diff HEAD | traits check --diff --format summary
+  git diff origin/main...HEAD | traits check --diff --format sarif > traits.sarif
+  traits check --provider systemone --model nimble src/

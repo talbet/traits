@@ -1,0 +1,1 @@
+{"model": "gpt-6-luna", "answers": [{"type": "predicate", "name": "damaged", "probability": 0.5}], "usage": {"input_tokens": 50}}

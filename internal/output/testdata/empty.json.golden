@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "summary": "No findings.",
+  "provider": "openai",
+  "model": "gpt-6-luna",
+  "traits": {},
+  "files": [],
+  "skipped": {
+    "gated": 3,
+    "notApplicable": 1,
+    "compliant": 2,
+    "cached": 0
+  },
+  "errors": [],
+  "usage": {
+    "requests": 0,
+    "inputTokens": 0,
+    "cachedTokens": 0
+  }
+}

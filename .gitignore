@@ -2,3 +2,4 @@
 /dist/
 .agents/traits/.cache/
 *.test
+.DS_Store

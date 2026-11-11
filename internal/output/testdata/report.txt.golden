@@ -1,0 +1,4 @@
+internal/parse/parse.go:40: fix[colocate-small-domain-errors] This change likely violates colocate-small-domain-errors (0.91) in lines 40-58: Define small domain error types in the module that raises them.\nWhy it matters: Keeps errors discoverable next to the code that raises them.
+internal/parse/parse.go:12: review[explain-magic-numbers] Could not tell whether explain-magic-numbers is met (0.55) at line 12.
+src/app view.tsx: fix[no-default-export] This file likely violates no-default-export (0.88).
+vendor/huge.js: error: input too large:\n120000 bytes

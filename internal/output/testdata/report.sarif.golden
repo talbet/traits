@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "traits",
+          "version": "0.1.0",
+          "rules": [
+            {
+              "id": "colocate-small-domain-errors",
+              "shortDescription": {
+                "text": "Define small domain error types in the module that raises them."
+              },
+              "help": {
+                "text": "Why: Keeps errors discoverable\nnext to the code that raises them.\nFix: Move the error next to its only caller."
+              }
+            },
+            {
+              "id": "explain-magic-numbers",
+              "shortDescription": {
+                "text": "Name or comment numeric literals other than 0 and 1."
+              },
+              "help": {
+                "text": "Why: Readers should not have to guess what <42> means.\nFix: Introduce a named constant."
+              }
+            },
+            {
+              "id": "no-default-export",
+              "shortDescription": {
+                "text": "Use named exports; do not use `export default`."
+              },
+              "help": {
+                "text": "Why: Named exports keep imports greppable & renames safe."
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "colocate-small-domain-errors",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "This change likely violates colocate-small-domain-errors (0.91) in lines 40-58: Define small domain error types in the module that raises them.\nWhy it matters: Keeps errors discoverable next to the code that raises them."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "internal/parse/parse.go"
+                },
+                "region": {
+                  "startLine": 40,
+                  "endLine": 58
+                }
+              }
+            }
+          ],
+          "properties": {
+            "classification": "violation",
+            "confidence": 0.91,
+            "probabilities": {
+              "compliant": 0.06,
+              "inconclusive": 0.01,
+              "not-applicable": 0.02,
+              "violation": 0.91
+            }
+          }
+        },
+        {
+          "ruleId": "explain-magic-numbers",
+          "ruleIndex": 1,
+          "level": "warning",
+          "message": {
+            "text": "Could not tell whether explain-magic-numbers is met (0.55) at line 12."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "internal/parse/parse.go"
+                },
+                "region": {
+                  "startLine": 12,
+                  "endLine": 12
+                }
+              }
+            }
+          ],
+          "properties": {
+            "classification": "inconclusive",
+            "confidence": 0.55,
+            "probabilities": {
+              "compliant": 0.15,
+              "inconclusive": 0.55,
+              "violation": 0.3
+            }
+          }
+        },
+        {
+          "ruleId": "no-default-export",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "This file likely violates no-default-export (0.88)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app%20view.tsx"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "classification": "violation",
+            "confidence": 0.88,
+            "probabilities": {
+              "compliant": 0.12,
+              "violation": 0.88
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "path": "src/app.tsx",
+  "language": "typescript",
+  "file": [
+    "1| import x from \"x\"",
+    "2| ",
+    "3| export default x"
+  ],
+  "changed": [
+    [
+      3,
+      3
+    ]
+  ]
+}

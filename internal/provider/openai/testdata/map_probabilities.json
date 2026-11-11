@@ -1,0 +1,5 @@
+{"model": "gpt-6-luna", "answers": [
+  {"type": "predicate", "name": "damaged", "probability": 0.30000000000000004},
+  {"type": "choice", "name": "department", "choice": "shipping", "confidence": 0.8, "probabilities": {"billing": 0.1, "shipping": 0.8, "other": 0.1}},
+  {"type": "score", "name": "severity", "score": 1.9, "confidence": 0.8, "probabilities": {"Workaround available": 0.1, "Fully blocked": 0.9}}
+], "usage": {"input_tokens": 50}}

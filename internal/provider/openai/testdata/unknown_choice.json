@@ -1,0 +1,5 @@
+{"model": "gpt-6-luna", "answers": [
+  {"type": "predicate", "name": "damaged", "probability": 0.5},
+  {"type": "choice", "name": "department", "choice": "legal"},
+  {"type": "score", "name": "severity", "score": 1}
+], "usage": {"input_tokens": 50}}

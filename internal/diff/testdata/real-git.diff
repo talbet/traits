@@ -1,0 +1,54 @@
+diff --git a/foo bar.go b/foo bar.go
+index de98044..a7bc997 100644
+--- a/foo bar.go	
++++ b/foo bar.go	
+@@ -1,3 +1,4 @@
+ a
+-b
++B
+ c
++d
+diff --git a/gone.go b/gone.go
+deleted file mode 100644
+index abaddc0..0000000
+--- a/gone.go
++++ /dev/null
+@@ -1 +0,0 @@
+-del
+diff --git a/img.bin b/img.bin
+index bdc955b..8835708 100644
+Binary files a/img.bin and b/img.bin differ
+diff --git a/new file.go b/new file.go
+new file mode 100644
+index 0000000..92d5444
+--- /dev/null
++++ b/new file.go	
+@@ -0,0 +1 @@
++fresh
+diff --git a/old.txt b/new.txt
+similarity index 50%
+rename from old.txt
+rename to new.txt
+index 2fa992c..fe5841d 100644
+--- a/old.txt
++++ b/new.txt
+@@ -1 +1,2 @@
+ keep
++more
+diff --git a/nonl.txt b/nonl.txt
+index 9ed40b4..4cb29ea 100644
+--- a/nonl.txt
++++ b/nonl.txt
+@@ -1,2 +1,3 @@
+ one
+-two
+\ No newline at end of file
++two
++three
+diff --git "a/\303\274n\303\257.go" "b/\303\274n\303\257.go"
+index 587be6b..975fbec 100644
+--- "a/\303\274n\303\257.go"
++++ "b/\303\274n\303\257.go"
+@@ -1 +1 @@
+-x
++y

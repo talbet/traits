@@ -1,0 +1,30 @@
+{
+  "path": "internal/parse/parse.go",
+  "language": "go",
+  "hunks": [
+    {
+      "id": "h1",
+      "oldStart": 10,
+      "newStart": 10,
+      "header": "func Parse(s string) error {",
+      "lines": [
+        " 10| \tif s == \"\" {",
+        "-11| \t\treturn errEmpty",
+        "+11| \t\treturn errors.ErrEmpty",
+        "+12| \t\t// was local",
+        " 13| \t}",
+        " 14| \treturn nil"
+      ]
+    },
+    {
+      "id": "h2",
+      "oldStart": 40,
+      "newStart": 41,
+      "lines": [
+        " 41| ",
+        "-41| var errEmpty = errors.New(\"empty\")",
+        " 42| // end"
+      ]
+    }
+  ]
+}

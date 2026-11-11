@@ -1,0 +1,1 @@
+{"result":{"answers":{"q0":{"type":"noul","noul":0.87},"q1":{"type":"choice","choice":"b","confidence":0.6,"probabilities":{"a":0.4,"b":0.6}}},"usage":{"input_tokens":120,"output_tokens":2}},"success":true,"errors":[],"messages":[]}

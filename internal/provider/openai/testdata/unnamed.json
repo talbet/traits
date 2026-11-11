@@ -1,0 +1,5 @@
+{"model": "gpt-6-luna", "answers": [
+  {"type": "predicate", "name": null, "probability": 0.5},
+  {"type": "choice", "name": null, "choice": "other", "confidence": 0.6},
+  {"type": "score", "name": null, "score": 0.2, "confidence": 0.9}
+], "usage": {"input_tokens": 50}}

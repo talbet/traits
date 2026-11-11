@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("---\nname: 0\nsubject: 0\nrequirement: 0\npurpose: 0\nappliesTo: !0\n---")

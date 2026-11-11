@@ -32,9 +32,9 @@ type TraitInfo struct {
 
 // Location is where in the new file a finding most likely is.
 type Location struct {
-	Hunk      string  `json:"hunk,omitempty"`
-	StartLine int     `json:"startLine"`
-	EndLine   int     `json:"endLine"`
+	Hunk      string `json:"hunk,omitempty"`
+	StartLine int    `json:"startLine"`
+	EndLine   int    `json:"endLine"`
 	// Probability is the model's probability for this location; 1 when the
 	// file had a single hunk and no localisation question was asked.
 	Probability float64 `json:"probability"`

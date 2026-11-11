@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "summary": "2 findings to fix, 1 to double-check in 2 files (3 traits, 3 asked).",
+  "provider": "openai",
+  "model": "gpt-6-luna",
+  "traits": {
+    "colocate-small-domain-errors": {
+      "requirement": "Define small domain error types in the module that raises them.",
+      "purpose": "Keeps errors discoverable\nnext to the code that raises them.",
+      "fix": "Move the error next to its only caller.",
+      "path": "colocate-small-domain-errors.md"
+    },
+    "explain-magic-numbers": {
+      "requirement": "Name or comment numeric literals other than 0 and 1.",
+      "purpose": "Readers should not have to guess what <42> means.",
+      "fix": "Introduce a named constant."
+    },
+    "no-default-export": {
+      "requirement": "Use named exports; do not use `export default`.",
+      "purpose": "Named exports keep imports greppable & renames safe."
+    }
+  },
+  "files": [
+    {
+      "path": "internal/parse/parse.go",
+      "findings": [
+        {
+          "trait": "colocate-small-domain-errors",
+          "tier": "fix",
+          "classification": "violation",
+          "probabilities": {
+            "compliant": 0.06,
+            "inconclusive": 0.01,
+            "not-applicable": 0.02,
+            "violation": 0.91
+          },
+          "confidence": 0.91,
+          "location": {
+            "hunk": "h2",
+            "startLine": 40,
+            "endLine": 58,
+            "probability": 0.84
+          },
+          "interpretation": "This change likely violates colocate-small-domain-errors (0.91) in lines 40-58: Define small domain error types in the module that raises them.\nWhy it matters: Keeps errors discoverable next to the code that raises them."
+        },
+        {
+          "trait": "explain-magic-numbers",
+          "tier": "review",
+          "classification": "inconclusive",
+          "probabilities": {
+            "compliant": 0.15,
+            "inconclusive": 0.55,
+            "violation": 0.3
+          },
+          "confidence": 0.55,
+          "location": {
+            "hunk": "h1",
+            "startLine": 12,
+            "endLine": 12,
+            "probability": 1
+          },
+          "interpretation": "Could not tell whether explain-magic-numbers is met (0.55) at line 12.",
+          "cached": true
+        }
+      ]
+    },
+    {
+      "path": "src/app view.tsx",
+      "findings": [
+        {
+          "trait": "no-default-export",
+          "tier": "fix",
+          "classification": "violation",
+          "probabilities": {
+            "compliant": 0.12,
+            "violation": 0.88
+          },
+          "confidence": 0.88,
+          "interpretation": "This file likely violates no-default-export (0.88)."
+        }
+      ]
+    }
+  ],
+  "skipped": {
+    "gated": 5,
+    "notApplicable": 4,
+    "compliant": 2,
+    "cached": 1
+  },
+  "errors": [
+    {
+      "path": "vendor/huge.js",
+      "error": "input too large:\n120000 bytes"
+    }
+  ],
+  "usage": {
+    "requests": 3,
+    "inputTokens": 5123,
+    "cachedTokens": 4096
+  }
+}

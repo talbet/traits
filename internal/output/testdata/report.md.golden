@@ -1,0 +1,29 @@
+2 findings to fix, 1 to double-check in 2 files (3 traits, 3 asked).
+
+## Fix
+
+### internal/parse/parse.go
+
+- Lines 40-58: `colocate-small-domain-errors` (violation 0.91)
+  - Requirement: Define small domain error types in the module that raises them.
+  - Why: Keeps errors discoverable next to the code that raises them.
+  - Fix: Move the error next to its only caller.
+
+### src/app view.tsx
+
+- Whole file: `no-default-export` (violation 0.88)
+  - Requirement: Use named exports; do not use `export default`.
+  - Why: Named exports keep imports greppable & renames safe.
+
+## Double-check
+
+### internal/parse/parse.go
+
+- Line 12: `explain-magic-numbers` (inconclusive 0.55)
+  - Requirement: Name or comment numeric literals other than 0 and 1.
+  - Why: Readers should not have to guess what <42> means.
+  - Fix: Introduce a named constant.
+
+## Errors
+
+- `vendor/huge.js`: input too large: 120000 bytes

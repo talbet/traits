@@ -1,0 +1,9 @@
+{
+  "model": "jev-1.13",
+  "answers": {
+    "q0": {"type": "noul", "noul": 0.9400000000000001},
+    "q1": {"type": "choice", "choice": "violation", "confidence": 0.82, "probabilities": {"compliant": 0.18, "violation": 0.82}},
+    "q2": {"type": "score", "score": 1, "confidence": 0.9, "probabilities": {"0": 0.05, "1": 0.9, "2": 0.05}}
+  },
+  "usage": {"input_tokens": 412, "output_tokens": 3}
+}
