@@ -65,6 +65,8 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.
 		code, err = runCheck(ctx, args[1:], stdin, stdout, stderr)
 	case "eval":
 		code, err = runEval(ctx, args[1:], stdin, stdout, stderr)
+	case "derive":
+		code, err = runDerive(ctx, args[1:], stdin, stdout, stderr)
 	case "explain":
 		err = runExplain(args[1:], stdout, stderr)
 	case "version", "--version":
