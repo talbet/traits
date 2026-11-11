@@ -5,6 +5,10 @@ Usage:
   traits check [options] --diff                  read a unified diff from stdin
   traits check [options] --assume-filename NAME  read one file from stdin
   traits explain [--rules dir] [trait...]        print the questions sent to the model
+  traits derive [options] (FILE.md | - | --from-feedback TEXT [--diff-file F])
+                                                 plan adding a trait to the collection
+  traits derive [--rules dir] --approve PLANID [--resolve NAME=replace|keep|both ...]
+                                                 write an approved plan
   traits version
 
 A trait is a Markdown file in .agents/traits/<name>.md:
@@ -34,6 +38,30 @@ Check options:
   --retries n         retries on 429 and 5xx (default 2; use 0 in hooks)
   --repo dir          repository root for reading post-change files
   --no-cache          bypass the answer cache in .agents/traits/.cache
+
+Derive:
+  derive checks a proposed trait with the decision model: is it one rule or
+  several (several are split by the LLM), and how does it relate to each
+  stored trait. It prints a plan and a plan ID and writes nothing:
+    created        a new trait file
+    covered        a stored trait already covers it; nothing to write
+    clarification  a clearer replacement of a stored trait, rewritten in
+                   place keeping its name and extension fields
+    conflict       needs --resolve NAME=replace|keep|both per stored trait
+    inconclusive, coverage-gap
+                   needs a human edit; nothing is written
+  --approve PLANID applies the plan saved in .agents/traits/.cache/plans
+  (the exact draft and split shown, without asking a model again), and only
+  if the stored traits are unchanged; otherwise re-run derive.
+  --from-feedback and splitting need an LLM (OpenAI-compatible
+  /v1/chat/completions with JSON-schema output):
+    TRAITS_LLM_MODEL     model (required for the LLM; no default)
+    TRAITS_LLM_BASE_URL  base URL (default https://api.openai.com)
+    TRAITS_LLM_API_KEY   API key (falls back to OPENAI_API_KEY)
+  Derive also takes --provider, --model, --timeout, --retries as check does,
+  and --format text (default) or json. It exits 0 when the plan can be
+  approved or was applied, 1 when it needs attention or approval was
+  refused, 2 for usage or configuration errors, 3 when a model failed.
 
 Output:
   Results go to stdout in the chosen format; the one-line summary and file
