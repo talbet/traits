@@ -188,6 +188,7 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 	}
 	if len(inputErrs) > 0 {
 		rep.Errors = append(inputErrs, rep.Errors...)
+		rep.Summary = check.Summarize(rep, len(traits))
 	}
 	if err := render(stdout, f.format, rep); err != nil {
 		return exitProvider, err

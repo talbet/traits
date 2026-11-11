@@ -107,7 +107,7 @@ func Run(ctx context.Context, opts Options, files []diff.File) (Report, error) {
 			rep.Traits[fd.Trait] = TraitInfo{Requirement: t.Requirement, Purpose: t.Purpose, Fix: t.Fix, Path: t.Path}
 		}
 	}
-	rep.Summary = summarize(rep, len(opts.Traits))
+	rep.Summary = Summarize(rep, len(opts.Traits))
 	return rep, nil
 }
 
@@ -534,7 +534,8 @@ func sentence(s string) string {
 	return s
 }
 
-func summarize(r Report, traits int) string {
+// Summarize returns the one-line summary of r for a run over traits traits.
+func Summarize(r Report, traits int) string {
 	var fix, review int
 	for _, f := range r.Files {
 		for _, fd := range f.Findings {

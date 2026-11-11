@@ -214,6 +214,9 @@ func TestCheckUnreadablePathContinues(t *testing.T) {
 	if code != exitFindings || requests.Load() == 0 {
 		t.Fatalf("exit %d requests %d stderr %q", code, requests.Load(), stderr)
 	}
+	if !strings.Contains(stderr, "1 file(s) could not be fully checked") {
+		t.Errorf("summary omits the unreadable file: %q", stderr)
+	}
 	if !strings.Contains(out, `"missing.go"`) || !strings.Contains(out, "no-debug-prints") {
 		t.Errorf("out = %s", out)
 	}
