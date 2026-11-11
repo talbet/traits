@@ -130,10 +130,7 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 	}
 
 	root := repoRoot(f.repo)
-	dir := f.rules
-	if dir == "" {
-		dir = filepath.Join(root, ".agents", "traits")
-	}
+	dir := traitsDir(f.rules, root)
 	traits, err := trait.Load(dir)
 	if err != nil {
 		if errors.Is(err, trait.ErrNoDir) {
@@ -143,22 +140,7 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 		return exitUsage, usageError{err}
 	}
 
-	p, ok := provider.Lookup(f.provider)
-	if !ok {
-		return exitUsage, usageError{fmt.Errorf("unknown provider %q (have %s)", f.provider, strings.Join(provider.Names(), ", "))}
-	}
-	modelName := f.model
-	if modelName == "" {
-		modelName = p.Default
-	}
-	model, err := p.New(provider.Config{
-		APIKey:  os.Getenv(p.KeyEnv),
-		BaseURL: envIf(p.URLEnv),
-		Account: envIf(p.AccountEnv),
-		Model:   modelName,
-		Timeout: f.timeout,
-		Retries: f.retries,
-	})
+	model, err := openModel(f.provider, f.model, f.timeout, f.retries)
 	if err != nil {
 		return exitUsage, usageError{err}
 	}
@@ -169,9 +151,9 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 	}
 
 	opts := check.Options{
-		Model:        model,
-		ProviderName: p.Name,
-		ModelName:    modelName,
+		Model:        model.DecisionModel,
+		ProviderName: model.Provider,
+		ModelName:    model.Name,
 		Traits:       traits,
 		Jobs:         f.jobs,
 		ReadFile:     readFile,
@@ -203,6 +185,47 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 		return exitFindings, nil
 	}
 	return exitOK, nil
+}
+
+// resolvedModel is a constructed decision model and the names that identify
+// it in reports and cache keys.
+type resolvedModel struct {
+	provider.DecisionModel
+	Provider string
+	Name     string
+}
+
+// openModel builds the named provider's model. An empty modelName means the
+// provider's default. Errors are configuration problems (exit 2).
+func openModel(providerName, modelName string, timeout time.Duration, retries int) (resolvedModel, error) {
+	p, ok := provider.Lookup(providerName)
+	if !ok {
+		return resolvedModel{}, fmt.Errorf("unknown provider %q (have %s)", providerName, strings.Join(provider.Names(), ", "))
+	}
+	if modelName == "" {
+		modelName = p.Default
+	}
+	m, err := p.New(provider.Config{
+		APIKey:  os.Getenv(p.KeyEnv),
+		BaseURL: envIf(p.URLEnv),
+		Account: envIf(p.AccountEnv),
+		Model:   modelName,
+		Timeout: timeout,
+		Retries: retries,
+	})
+	if err != nil {
+		return resolvedModel{}, err
+	}
+	return resolvedModel{DecisionModel: m, Provider: p.Name, Name: modelName}, nil
+}
+
+// traitsDir returns the traits directory: dir if set, else .agents/traits
+// under root.
+func traitsDir(dir, root string) string {
+	if dir != "" {
+		return dir
+	}
+	return filepath.Join(root, ".agents", "traits")
 }
 
 func validateCheckFlags(f checkFlags, args []string) error {
@@ -386,10 +409,7 @@ func runExplain(args []string, stdout, stderr io.Writer) error {
 	if err := fs.Parse(args); err != nil {
 		return usageError{err}
 	}
-	dir := *rules
-	if dir == "" {
-		dir = filepath.Join(repoRoot(""), ".agents", "traits")
-	}
+	dir := traitsDir(*rules, repoRoot(""))
 	traits, err := trait.Load(dir)
 	if err != nil {
 		return usageError{err}
