@@ -24,11 +24,15 @@ var hunkHeader = regexp.MustCompile(`^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@
 // plain unified diff whose sections start at "---". Text before the first
 // section, such as a commit header, is ignored. Hunk line counts are checked
 // against their "@@" headers; a malformed diff returns an error naming the
-// input line. Input without any diff returns ErrNoDiff.
+// input line. Empty input returns no files; other input without any diff
+// returns ErrNoDiff.
 func Parse(r io.Reader) ([]File, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
+	}
+	if strings.TrimSpace(string(data)) == "" {
+		return nil, nil // an empty diff (e.g. a clean working tree) has no files
 	}
 	p := parser{lines: splitLines(string(data))}
 	if err := p.run(); err != nil {

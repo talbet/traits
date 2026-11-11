@@ -194,3 +194,41 @@ func TestExplain(t *testing.T) {
 		t.Errorf("exit %d out %s err %s", code, out, stderr)
 	}
 }
+
+func TestCheckEmptyDiffIsClean(t *testing.T) {
+	dir := setup(t)
+	code, out, stderr := runCLI(t, "", "check", "--diff", "--provider", "systemone", "--model", "fake", "--repo", dir)
+	if code != exitOK {
+		t.Errorf("exit %d out %q stderr %q", code, out, stderr)
+	}
+}
+
+func TestCheckUnreadablePathContinues(t *testing.T) {
+	srv, requests := systemOne(t)
+	dir := setup(t)
+	t.Setenv("TRAITS_SYSTEMONE_URL", srv.URL)
+	good := filepath.Join(dir, "main.go")
+	os.WriteFile(good, []byte("package main\n\nfunc main() { fmt.Println(1) }\n"), 0o644)
+	code, out, stderr := runCLI(t, "", "check", "--provider", "systemone", "--model", "fake", "--repo", dir,
+		"--no-cache", "--fail-on", "never", good, filepath.Join(dir, "missing.go"))
+	if code != exitFindings || requests.Load() == 0 {
+		t.Fatalf("exit %d requests %d stderr %q", code, requests.Load(), stderr)
+	}
+	if !strings.Contains(out, `"missing.go"`) || !strings.Contains(out, "no-debug-prints") {
+		t.Errorf("out = %s", out)
+	}
+}
+
+func TestCheckModelFromEnvSeparatesCache(t *testing.T) {
+	srv, requests := systemOne(t)
+	dir := setup(t)
+	t.Setenv("TRAITS_SYSTEMONE_URL", srv.URL)
+	t.Setenv("TRAITS_MODEL", "model-a")
+	runCLI(t, sampleDiff, "check", "--diff", "--provider", "systemone", "--repo", dir)
+	first := requests.Load()
+	t.Setenv("TRAITS_MODEL", "model-b")
+	runCLI(t, sampleDiff, "check", "--diff", "--provider", "systemone", "--repo", dir)
+	if first == 0 || requests.Load() == first {
+		t.Errorf("requests: first run %d, total %d; a new model must not reuse cached answers", first, requests.Load())
+	}
+}

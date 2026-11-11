@@ -190,7 +190,12 @@ func TestParseErrors(t *testing.T) {
 }
 
 func TestParseNoDiff(t *testing.T) {
-	for _, src := range []string{"", "hello\nworld\n", "commit abc\n\n    msg\n"} {
+	for _, src := range []string{"", " \n\n", "\t"} {
+		if files, err := Parse(strings.NewReader(src)); err != nil || len(files) != 0 {
+			t.Errorf("Parse(%q) = %v, %v; want no files, no error", src, files, err)
+		}
+	}
+	for _, src := range []string{"hello\nworld\n", "commit abc\n\n    msg\n"} {
 		if _, err := Parse(strings.NewReader(src)); !errors.Is(err, ErrNoDiff) {
 			t.Errorf("Parse(%q) err = %v, want ErrNoDiff", src, err)
 		}

@@ -179,8 +179,8 @@ func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, erro
 		}
 	}
 
-	// best holds, per trait, the answer with the highest violation
-	// probability across units, and the unit it came from.
+	// best holds, per trait, the most severe answer across units (by tier,
+	// then violation probability), and the unit it came from.
 	type best struct {
 		probs  map[Classification]float64
 		unit   int
@@ -200,7 +200,7 @@ func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, erro
 			if !seen {
 				order = append(order, t.Name)
 			}
-			if !seen || p[Violation] > b.probs[Violation] {
+			if !seen || moreSevere(t, p, b.probs) {
 				bests[t.Name] = best{probs: p, unit: ui, cached: cached[i]}
 			}
 		}
@@ -449,6 +449,24 @@ func tierOf(t trait.Trait, p map[Classification]float64) Tier {
 		return TierReview
 	}
 	return ""
+}
+
+// moreSevere reports whether answer a should be reported over answer b: a
+// higher tier wins, then a higher violation probability.
+func moreSevere(t trait.Trait, a, b map[Classification]float64) bool {
+	rank := func(p map[Classification]float64) int {
+		switch tierOf(t, p) {
+		case TierFix:
+			return 2
+		case TierReview:
+			return 1
+		}
+		return 0
+	}
+	if ra, rb := rank(a), rank(b); ra != rb {
+		return ra > rb
+	}
+	return a[Violation] > b[Violation]
 }
 
 func hunkLocation(in compile.Input, a provider.Answer) *Location {

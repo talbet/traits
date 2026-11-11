@@ -27,7 +27,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -45,9 +44,8 @@ const DefaultURL = "http://127.0.0.1:11434"
 
 // Environment variables read by the "systemone" provider.
 const (
-	URLEnv   = "TRAITS_SYSTEMONE_URL"
-	KeyEnv   = "TRAITS_SYSTEMONE_API_KEY"
-	ModelEnv = "TRAITS_SYSTEMONE_MODEL"
+	URLEnv = "TRAITS_SYSTEMONE_URL"
+	KeyEnv = "TRAITS_SYSTEMONE_API_KEY"
 )
 
 func init() {
@@ -60,14 +58,11 @@ func init() {
 }
 
 // New builds a System One model from cfg. The API key is optional; the model
-// is required (cfg.Model, else TRAITS_SYSTEMONE_MODEL).
+// is required, because a server can serve any model.
 func New(cfg provider.Config) (provider.DecisionModel, error) {
 	model := cfg.Model
 	if model == "" {
-		model = os.Getenv(ModelEnv)
-	}
-	if model == "" {
-		return nil, fmt.Errorf("systemone: no model; pass --model or set %s", ModelEnv)
+		return nil, fmt.Errorf("systemone: no model; pass --model or set TRAITS_MODEL")
 	}
 	base := cfg.BaseURL
 	if base == "" {

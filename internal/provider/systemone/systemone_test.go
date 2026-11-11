@@ -162,12 +162,10 @@ func TestNewAndRegistration(t *testing.T) {
 	if !ok || p.URLEnv != URLEnv || p.KeyEnv != KeyEnv || p.Default != "" || len(p.Models) != 0 {
 		t.Fatalf("registration = %+v", p)
 	}
-	t.Setenv(ModelEnv, "")
-	if _, err := p.New(provider.Config{}); err == nil || !strings.Contains(err.Error(), ModelEnv) {
+	if _, err := p.New(provider.Config{}); err == nil || !strings.Contains(err.Error(), "TRAITS_MODEL") {
 		t.Errorf("New() without model error = %v", err)
 	}
-	t.Setenv(ModelEnv, "nimble")
-	m, err := p.New(provider.Config{})
+	m, err := p.New(provider.Config{Model: "nimble"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -20,6 +20,8 @@ type fakeModel struct {
 	limits   provider.Limits
 	requests []provider.Request
 	err      error
+	// byInput, when set, overrides answers for inputs containing a key.
+	byInput map[string]map[string]float64
 }
 
 func (m *fakeModel) Limits() provider.Limits { return m.limits }
@@ -34,6 +36,11 @@ func (m *fakeModel) Decide(_ context.Context, req provider.Request) (provider.Re
 	var res provider.Response
 	for _, q := range req.Questions {
 		dist, ok := m.answers[q.Name]
+		for sub, d := range m.byInput {
+			if strings.Contains(string(req.Input), sub) {
+				dist, ok = d, true
+			}
+		}
 		if !ok {
 			dist = map[string]float64{"not-applicable": 0.9, "compliant": 0.1}
 		}
@@ -249,5 +256,29 @@ func TestRunSkipsBinaryAndDeleted(t *testing.T) {
 	}
 	if len(m.requests) != 0 {
 		t.Errorf("requests = %d", len(m.requests))
+	}
+}
+
+func TestRunWorstTierAcrossGroups(t *testing.T) {
+	// Two hunks that cannot share a request: one answer is inconclusive
+	// (review), the other leans compliant with a higher violation
+	// probability that is still below review. The review must survive.
+	m := &fakeModel{
+		limits: provider.Limits{MaxInputBytes: 220},
+		byInput: map[string]map[string]float64{
+			"AAAA": {"inconclusive": 0.8, "violation": 0.1, "compliant": 0.1},
+			"BBBB": {"compliant": 0.7, "violation": 0.3},
+		},
+	}
+	opts := Options{Model: m, Traits: []trait.Trait{mkTrait("t")}}
+	rep, err := Run(context.Background(), opts, []diff.File{file("a.go", hunk(1, strings.Repeat("A", 40)), hunk(50, strings.Repeat("B", 40)))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.requests) != 2 {
+		t.Fatalf("requests = %d, want 2 (one per group)", len(m.requests))
+	}
+	if len(rep.Files) != 1 || rep.Files[0].Findings[0].Classification != Inconclusive {
+		t.Errorf("report = %+v", rep)
 	}
 }

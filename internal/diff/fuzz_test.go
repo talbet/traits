@@ -26,8 +26,8 @@ func FuzzParse(f *testing.F) {
 		if err != nil {
 			return
 		}
-		if len(files) == 0 {
-			t.Fatal("no files and no error")
+		if len(files) == 0 && strings.TrimSpace(src) != "" {
+			t.Fatal("no files and no error for non-empty input")
 		}
 		for _, file := range files {
 			checkLineNumbers(t, file)

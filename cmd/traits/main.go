@@ -163,7 +163,7 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 		return exitUsage, usageError{err}
 	}
 
-	files, readFile, err := readInput(f, fs.Args(), stdin, root)
+	files, readFile, inputErrs, err := readInput(f, fs.Args(), stdin, root)
 	if err != nil {
 		return exitUsage, usageError{err}
 	}
@@ -185,6 +185,9 @@ func runCheck(ctx context.Context, args []string, stdin io.Reader, stdout, stder
 	rep, err := check.Run(ctx, opts, files)
 	if err != nil {
 		return exitProvider, err
+	}
+	if len(inputErrs) > 0 {
+		rep.Errors = append(inputErrs, rep.Errors...)
 	}
 	if err := render(stdout, f.format, rep); err != nil {
 		return exitProvider, err
@@ -231,17 +234,19 @@ func validateCheckFlags(f checkFlags, args []string) error {
 // when checking files rather than a diff.
 const wholeFileHunk = 150
 
-// readInput returns the files to check and a reader for post-change content.
-func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]diff.File, func(string) ([]byte, error), error) {
+// readInput returns the files to check, a reader for post-change content,
+// and per-path errors for paths that could not be read; those are reported
+// with the other file errors rather than stopping the run.
+func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]diff.File, func(string) ([]byte, error), []check.FileError, error) {
 	readRepo := func(p string) ([]byte, error) { return os.ReadFile(filepath.Join(root, filepath.FromSlash(p))) }
 	switch {
 	case f.diff:
 		files, err := diff.Parse(stdin)
-		return files, readRepo, err
+		return files, readRepo, nil, err
 	case f.assumeFilename != "":
 		data, err := io.ReadAll(stdin)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		name := filepath.ToSlash(f.assumeFilename)
 		read := func(p string) ([]byte, error) {
@@ -250,14 +255,19 @@ func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]dif
 			}
 			return nil, fs.ErrNotExist
 		}
-		return []diff.File{wholeFile(name, data)}, read, nil
+		return []diff.File{wholeFile(name, data)}, read, nil, nil
 	}
 	var files []diff.File
+	var errs []check.FileError
 	contents := map[string][]byte{}
 	for _, a := range args {
-		err := filepath.WalkDir(a, func(p string, d fs.DirEntry, err error) error {
+		_ = filepath.WalkDir(a, func(p string, d fs.DirEntry, err error) error {
 			if err != nil {
-				return err
+				errs = append(errs, check.FileError{Path: relPath(root, p), Error: err.Error()})
+				if d != nil && d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
 			}
 			if p != a && strings.HasPrefix(d.Name(), ".") {
 				if d.IsDir() {
@@ -270,7 +280,8 @@ func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]dif
 			}
 			data, err := os.ReadFile(p)
 			if err != nil {
-				return err
+				errs = append(errs, check.FileError{Path: relPath(root, p), Error: err.Error()})
+				return nil
 			}
 			if bytes.IndexByte(data[:min(len(data), 8000)], 0) >= 0 {
 				return nil // binary
@@ -280,9 +291,6 @@ func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]dif
 			files = append(files, wholeFile(name, data))
 			return nil
 		})
-		if err != nil {
-			return nil, nil, err
-		}
 	}
 	read := func(p string) ([]byte, error) {
 		if d, ok := contents[p]; ok {
@@ -290,7 +298,7 @@ func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]dif
 		}
 		return nil, fs.ErrNotExist
 	}
-	return files, read, nil
+	return files, read, errs, nil
 }
 
 // wholeFile presents a file's content as a new file, split into hunks of
