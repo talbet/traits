@@ -175,18 +175,19 @@ func hookRun(ctx context.Context, agent string, f hookFlags, stdin io.Reader) ([
 	if p.Cwd == "" {
 		p.Cwd, _ = os.Getwd()
 	}
-	var changes []hook.Change
-	if agent == "claude" {
-		changes = hook.Claude(p, os.ReadFile)
-	} else {
-		changes = hook.Codex(p, os.ReadFile)
-	}
-	if len(changes) == 0 {
-		return nil, nil
-	}
 	he, err := loadHookEnv(p.Cwd, f.rules)
 	if err != nil {
 		return nil, err
+	}
+	read := confinedAbsReader(he.root)
+	var changes []hook.Change
+	if agent == "claude" {
+		changes = hook.Claude(p, read)
+	} else {
+		changes = hook.Codex(p, read)
+	}
+	if len(changes) == 0 {
+		return nil, nil
 	}
 	var files []diff.File
 	for _, c := range changes {
@@ -208,7 +209,7 @@ func hookRun(ctx context.Context, agent string, f hookFlags, stdin io.Reader) ([
 		ProviderName: model.Provider,
 		ModelName:    model.Name,
 		Traits:       he.traits,
-		ReadFile:     repoReader(he.root),
+		ReadFile:     confinedReader(he.root),
 	}
 	if c, err := state.OpenCache(filepath.Join(he.dir, ".cache")); err == nil {
 		opts.Cache = c
@@ -308,10 +309,6 @@ func inside(root, abs string) (string, bool) {
 		return "", false
 	}
 	return filepath.ToSlash(rel), true
-}
-
-func repoReader(root string) func(string) ([]byte, error) {
-	return func(p string) ([]byte, error) { return os.ReadFile(filepath.Join(root, filepath.FromSlash(p))) }
 }
 
 func runHookInstall(args []string, stdout, stderr io.Writer) (int, error) {

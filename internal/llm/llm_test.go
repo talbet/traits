@@ -132,3 +132,26 @@ func TestFromEnv(t *testing.T) {
 		t.Errorf("TRAITS_LLM_API_KEY should win, got %q", c.APIKey)
 	}
 }
+
+func TestFromEnvNeverSendsOpenAIKeyElsewhere(t *testing.T) {
+	t.Setenv(ModelEnv, "m")
+	t.Setenv(KeyEnv, "")
+	t.Setenv(OpenAIKeyEnv, "sk-openai")
+	for base, want := range map[string]string{
+		"":                               "sk-openai",
+		"https://api.openai.com":         "sk-openai",
+		"https://api.openai.com/v1":      "sk-openai",
+		"https://openrouter.ai/api":      "",
+		"http://api.openai.com":          "",
+		"https://api.openai.com.evil.io": "",
+	} {
+		t.Setenv(BaseURLEnv, base)
+		c, err := FromEnv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.APIKey != want {
+			t.Errorf("base %q: key %q, want %q", base, c.APIKey, want)
+		}
+	}
+}

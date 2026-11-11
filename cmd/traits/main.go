@@ -277,7 +277,7 @@ const wholeFileHunk = 150
 // and per-path errors for paths that could not be read; those are reported
 // with the other file errors rather than stopping the run.
 func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]diff.File, func(string) ([]byte, error), []check.FileError, error) {
-	readRepo := func(p string) ([]byte, error) { return os.ReadFile(filepath.Join(root, filepath.FromSlash(p))) }
+	readRepo := confinedReader(root)
 	switch {
 	case f.diff:
 		files, err := diff.Parse(stdin)
@@ -316,6 +316,9 @@ func readInput(f checkFlags, args []string, stdin io.Reader, root string) ([]dif
 			}
 			if d.IsDir() {
 				return nil
+			}
+			if p != a && d.Type()&fs.ModeSymlink != 0 {
+				return nil // never follow symlinks found while walking
 			}
 			data, err := os.ReadFile(p)
 			if err != nil {
@@ -369,6 +372,33 @@ func relPath(root, p string) string {
 		return filepath.ToSlash(r)
 	}
 	return filepath.ToSlash(p)
+}
+
+// confinedReader reads slash-separated, repository-relative paths under
+// root. It uses os.Root, so a path from an untrusted diff cannot escape root
+// with ".." or through a symlink pointing outside it.
+func confinedReader(root string) func(string) ([]byte, error) {
+	return func(p string) ([]byte, error) {
+		r, err := os.OpenRoot(root)
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+		return r.ReadFile(filepath.FromSlash(p))
+	}
+}
+
+// confinedAbsReader is confinedReader for absolute paths, which must lie
+// inside root.
+func confinedAbsReader(root string) func(string) ([]byte, error) {
+	read := confinedReader(root)
+	return func(abs string) ([]byte, error) {
+		rel, ok := inside(root, abs)
+		if !ok {
+			return nil, fmt.Errorf("%s is outside %s", abs, root)
+		}
+		return read(rel)
+	}
 }
 
 // repoRoot returns dir if set, else the nearest ancestor of the working

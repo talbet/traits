@@ -56,6 +56,11 @@ func TestInstallMergesIdempotentlyAndBacksUp(t *testing.T) {
 	if data, _ := os.ReadFile(res.Backup); string(data) != existing {
 		t.Error("backup differs from the original")
 	}
+	for _, p := range []string{path, res.Backup} {
+		if fi, err := os.Stat(p); err != nil || fi.Mode().Perm() != 0o600 {
+			t.Errorf("%s mode = %v, want 0600 (settings may hold secrets)", p, fi.Mode().Perm())
+		}
+	}
 	data, _ := os.ReadFile(path)
 	text := string(data)
 	// Unknown keys kept, in their original order, numbers untouched.

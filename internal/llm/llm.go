@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -73,11 +74,13 @@ func FromEnv() (*Client, error) {
 	if model == "" {
 		return nil, ErrNotConfigured
 	}
+	base := os.Getenv(BaseURLEnv)
 	key := os.Getenv(KeyEnv)
-	if key == "" {
+	if key == "" && isOpenAI(base) {
+		// Never send an OpenAI key to another host.
 		key = os.Getenv(OpenAIKeyEnv)
 	}
-	return &Client{BaseURL: os.Getenv(BaseURLEnv), Model: model, APIKey: key, Retries: 2}, nil
+	return &Client{BaseURL: base, Model: model, APIKey: key, Retries: 2}, nil
 }
 
 // URL returns the chat-completions endpoint for base: base + /v1/chat/completions,
@@ -207,4 +210,14 @@ func content(raw []byte) (json.RawMessage, error) {
 		return nil, err
 	}
 	return b.Bytes(), nil
+}
+
+// isOpenAI reports whether base is unset or OpenAI's own API host, the only
+// case where OPENAI_API_KEY may be sent.
+func isOpenAI(base string) bool {
+	if strings.TrimSpace(base) == "" {
+		return true
+	}
+	u, err := url.Parse(base)
+	return err == nil && u.Scheme == "https" && u.Hostname() == "api.openai.com"
 }

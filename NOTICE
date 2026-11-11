@@ -18,8 +18,13 @@ crosshatch/traits
   Adapted: the trait file format (subject, requirement, applicability,
   purpose, context), the four-way classification (compliant, violation,
   not-applicable, inconclusive), and assessment instruction text used in the
-  compiled questions, modified for this tool. A copy of the Apache License 2.0
-  is available at https://www.apache.org/licenses/LICENSE-2.0.
+  compiled questions, and the derive flow and its decomposition, relationship
+  and coverage prompts (internal/derive), all modified for this tool.
+  Included unmodified as test fixtures: four trait files from
+  .agents/traits in crosshatch/traits, in internal/trait/testdata/traits/
+  (Copyright (c) 2026 Crosshatch Labs Inc.).
+  A copy of the Apache License 2.0 is available at
+  https://www.apache.org/licenses/LICENSE-2.0.
 
 Ideas (no code copied) from:
   Haizzz/lentil         https://github.com/Haizzz/lentil

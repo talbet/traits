@@ -181,6 +181,10 @@ The action downloads the release binary for the runner, runs
 `git diff --no-color <base>...HEAD | traits check --diff`, writes `traits.sarif`,
 optionally uploads it, and fails on findings at `fail-on`.
 
+Run it on `pull_request`, not `pull_request_target`, so fork pull requests
+never receive your provider key. See [SECURITY.md](SECURITY.md) for what is
+sent to providers and how file reads are confined to the checkout.
+
 ## Credits
 
 - [madxmike/gallant](https://github.com/madxmike/gallant) (MIT): CLI conventions,

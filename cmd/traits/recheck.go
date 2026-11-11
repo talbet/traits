@@ -105,7 +105,7 @@ func recheck(ctx context.Context, f hookFlags, stdin io.Reader) error {
 // recheckFile returns outcome records for one file's open findings, or none
 // when the file is gone or could not be checked.
 func recheckFile(ctx context.Context, root, path string, open []state.Finding, byName map[string]trait.Trait, model resolvedModel, cache check.Cache) []state.Record {
-	data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
+	data, err := confinedReader(root)(path)
 	if err != nil {
 		return nil
 	}
@@ -125,7 +125,7 @@ func recheckFile(ctx context.Context, root, path string, open []state.Finding, b
 		ProviderName: model.Provider,
 		ModelName:    model.Name,
 		Traits:       traits,
-		ReadFile:     repoReader(root),
+		ReadFile:     confinedReader(root),
 		Cache:        cache,
 	}, []diff.File{wholeFile(path, data)})
 	if err != nil || len(rep.Errors) > 0 {

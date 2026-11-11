@@ -374,15 +374,17 @@ func Install(path string, cmds []Command, apply bool, now time.Time) (Result, er
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return res, err
 	}
-	if exists {
-		res.Backup = path + ".bak-" + now.Format("20060102-150405")
-		if err := os.WriteFile(res.Backup, data, 0o644); err != nil {
-			return res, err
-		}
-	}
+	// settings.json can hold secrets (env), so the backup and the rewrite
+	// keep the original file's permissions.
 	mode := fs.FileMode(0o644)
 	if fi, err := os.Stat(path); err == nil {
 		mode = fi.Mode().Perm()
+	}
+	if exists {
+		res.Backup = path + ".bak-" + now.Format("20060102-150405")
+		if err := os.WriteFile(res.Backup, data, mode); err != nil {
+			return res, err
+		}
 	}
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, res.Content, mode); err != nil {
