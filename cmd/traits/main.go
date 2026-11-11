@@ -46,6 +46,8 @@ const (
 // usageError marks a command line that cannot be used.
 type usageError struct{ error }
 
+func (e usageError) Unwrap() error { return e.error }
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	code := run(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr)

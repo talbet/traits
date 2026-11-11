@@ -113,11 +113,47 @@ A trait that agents often keep may be noisy and worth rewording.
 
 ## Evaluating traits
 
-See `traits help`.
+Put labelled examples next to a trait in `<name>.cases.jsonl`, one JSON object
+per line:
+
+```json
+{"split":"dev","path":"src/parse.ts","diff":"@@ -1 +1 @@\n-a\n+b\n","expect":"violation"}
+{"split":"holdout","path":"src/ok.ts","content":"export const x = 1\n","expect":"compliant"}
+```
+
+`expect` is `violation`, `compliant` or `not-applicable`. Then:
+
+```sh
+traits eval                                   # dev split, default provider
+traits eval --split holdout --fail-under-f1 0.9
+traits eval --compare openai:gpt-6-luna,systemone:nimble
+traits eval --promote          # dry run: which candidate traits pass holdout
+traits eval --promote --yes    # set them to status active
+```
+
+It reports precision, recall, F1 and false alarms per trait at both
+thresholds, and how many cases the `appliesTo`/`when` gate dropped. Tune
+wording on `dev`; judge on `holdout`. Answers are cached, so reruns are free.
 
 ## Deriving traits
 
-See `traits help`.
+`traits derive` adds a preference to the collection safely. It checks whether
+a proposed trait is one rule or several (several are split by an LLM), then
+how it relates to every stored trait: distinct, already covered (verified by
+a second check), a clarification of one, or a conflict. It prints a plan and
+writes nothing:
+
+```sh
+traits derive proposed.md                               # from a trait file
+traits derive --from-feedback "don't wrap callbacks in arrows" --diff-file fix.diff
+traits derive --approve 3f9c2a1b7d0e                    # apply exactly that plan
+traits derive --approve 3f9c2a1b7d0e --resolve old-trait=replace
+```
+
+Approval applies the saved plan you were shown and is refused if any trait
+changed since. Drafting from feedback and splitting need an
+OpenAI-compatible chat model: set `TRAITS_LLM_MODEL` (and `TRAITS_LLM_BASE_URL`,
+`TRAITS_LLM_API_KEY`, which falls back to `OPENAI_API_KEY`).
 
 ## CI
 

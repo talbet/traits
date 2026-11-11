@@ -56,7 +56,8 @@ When the user corrects how code should be written ("we always ...", "don't ...",
    conflicts with existing traits and coverage.
 2. **Show the plan to the user and get their explicit approval.** Explain what each
    proposed trait would require and any conflict the plan reports.
-3. Only after the user approves, apply the plan with `traits derive ... --approve`.
+3. Only after the user approves, apply that exact plan with
+   `traits derive --approve <PLANID>` (the plan output prints the command).
 
 Never create, edit, rename or delete files in `.agents/traits/` silently, and never
 pass `--approve` on your own judgement. If the user declines, leave the traits alone.
