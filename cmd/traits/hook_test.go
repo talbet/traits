@@ -385,3 +385,18 @@ func TestSkillInstall(t *testing.T) {
 		t.Errorf("rerun: %s", out)
 	}
 }
+
+func TestHookBadFlagsAreSilent(t *testing.T) {
+	dir := hookRepo(t, contentServer(t, 0, 0))
+	p := writePayload(dir, "main.go", debugGo, "s")
+	for _, args := range [][]string{
+		{"hook", "claude", "--unknown"},
+		{"hook", "claude", "--timeout", "soon"},
+		{"recheck", "--bogus"},
+	} {
+		code, out, stderr := runHookCLI(t, p, args...)
+		if code != 0 || out != "" || stderr != "" {
+			t.Errorf("%v: exit %d out %q stderr %q", args, code, out, stderr)
+		}
+	}
+}

@@ -282,3 +282,21 @@ func TestRunWorstTierAcrossGroups(t *testing.T) {
 		t.Errorf("report = %+v", rep)
 	}
 }
+
+func TestRunUnlocatedFileHasNoLocation(t *testing.T) {
+	m := &fakeModel{answers: map[string]map[string]float64{"bad": {"violation": 0.9}, "locate:bad": {"h1": 1}}}
+	opts := Options{Model: m, Traits: []trait.Trait{mkTrait("bad")}}
+	f := file("a.go", hunk(1, "x"), hunk(1, "y"))
+	f.Unlocated = true
+	rep, err := Run(context.Background(), opts, []diff.File{f})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd := rep.Files[0].Findings[0]
+	if fd.Location != nil || strings.Contains(fd.Interpretation, "line") {
+		t.Errorf("finding = %+v", fd)
+	}
+	if len(m.requests) != 1 {
+		t.Errorf("requests = %d, want 1 (no locate pass)", len(m.requests))
+	}
+}

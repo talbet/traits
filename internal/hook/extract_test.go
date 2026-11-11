@@ -101,8 +101,9 @@ func TestClaudeEditLocatesLines(t *testing.T) {
 		t.Errorf("hunk starts at %d with %q; want 3 lines of context from line 7", h.NewStart, h.Lines[0].Text)
 	}
 
-	// The edit's text is no longer in the file: nothing to report.
-	if cs := Claude(p, disk(map[string]string{"/repo/main.go": "other\n"})); len(cs) != 0 {
+	// The edit's text is no longer in the file: check the edit's own text,
+	// without a location.
+	if cs := Claude(p, disk(map[string]string{"/repo/main.go": "other\n"})); len(cs) != 1 || !cs[0].File.Unlocated {
 		t.Errorf("stale edit gave %+v", cs)
 	}
 	// Unreadable file.
@@ -112,14 +113,55 @@ func TestClaudeEditLocatesLines(t *testing.T) {
 }
 
 func TestClaudeEditReplaceAll(t *testing.T) {
+	// replace_all cannot tell its replacements from pre-existing matches,
+	// so the edit's own text is checked without a location.
 	cur := "a := log(1)\nb := log(2)\n"
 	p := payload(t, "Edit", map[string]any{"file_path": "/repo/x.go", "old_string": "print(", "new_string": "log(", "replace_all": true})
 	cs := Claude(p, disk(map[string]string{"/repo/x.go": cur}))
-	if len(cs) != 1 {
-		t.Fatal("no change")
+	if len(cs) != 1 || !cs[0].File.Unlocated {
+		t.Fatalf("changes = %+v", cs)
 	}
-	eq(t, "added", added(cs[0].File), []string{"1:a := log(1)", "2:b := log(2)"})
-	eq(t, "removed", removed(cs[0].File), []string{"a := print(1)", "b := print(2)"})
+	eq(t, "added", added(cs[0].File), []string{"1:log("})
+	eq(t, "removed", removed(cs[0].File), []string{"print("})
+}
+
+func TestClaudeEditDeletion(t *testing.T) {
+	// new_string "" removes text: its position is gone, but the removal is
+	// still checked.
+	p := payload(t, "Edit", map[string]any{"file_path": "/repo/x.go", "old_string": "\tdefer cleanup()\n", "new_string": ""})
+	cs := Claude(p, disk(map[string]string{"/repo/x.go": "func f() {\n}\n"}))
+	if len(cs) != 1 || !cs[0].File.Unlocated {
+		t.Fatalf("changes = %+v", cs)
+	}
+	eq(t, "removed", removed(cs[0].File), []string{"\tdefer cleanup()"})
+}
+
+func TestClaudeEditAmbiguous(t *testing.T) {
+	// The new text also occurs earlier, unchanged: undoing the first match
+	// would blame the wrong line, so no location is claimed.
+	cur := "if a {\n\treturn nil\n}\nif b {\n\treturn nil\n}\n"
+	p := payload(t, "Edit", map[string]any{"file_path": "/repo/x.go", "old_string": "\treturn err", "new_string": "\treturn nil"})
+	cs := Claude(p, disk(map[string]string{"/repo/x.go": cur}))
+	if len(cs) != 1 || !cs[0].File.Unlocated {
+		t.Fatalf("changes = %+v", cs)
+	}
+	eq(t, "removed", removed(cs[0].File), []string{"\treturn err"})
+}
+
+func TestClaudeMultiEditWithDeletionKeepsOtherEdits(t *testing.T) {
+	cur := "a\nB\nc\n"
+	p := payload(t, "MultiEdit", map[string]any{
+		"file_path": "/repo/m.txt",
+		"edits": []map[string]any{
+			{"old_string": "b", "new_string": "B"},
+			{"old_string": "d\n", "new_string": ""},
+		},
+	})
+	cs := Claude(p, disk(map[string]string{"/repo/m.txt": cur}))
+	if len(cs) != 1 {
+		t.Fatalf("changes = %+v", cs)
+	}
+	eq(t, "removed", removed(cs[0].File), []string{"b", "d"})
 }
 
 func TestClaudeMultiEdit(t *testing.T) {

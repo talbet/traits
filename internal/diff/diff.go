@@ -38,6 +38,10 @@ type File struct {
 	NewPath string
 	Binary  bool
 	Hunks   []Hunk
+	// Unlocated is true when the hunks' line numbers are not positions in
+	// the real file, e.g. an agent edit whose place in the file could not be
+	// recovered. Findings on such a file carry no location.
+	Unlocated bool
 }
 
 // Path is the path the change should be reported under: NewPath, or OldPath

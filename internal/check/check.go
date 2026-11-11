@@ -233,7 +233,7 @@ func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, erro
 		b := bests[name]
 		t := traitByName(opts.Traits, name)
 		_, review := t.Effective()
-		if b.probs[Violation] >= review && len(units[b.unit].input.Hunks) > 1 {
+		if !f.Unlocated && b.probs[Violation] >= review && len(units[b.unit].input.Hunks) > 1 {
 			locate[b.unit] = append(locate[b.unit], t)
 		}
 	}
@@ -268,7 +268,7 @@ func checkFile(ctx context.Context, opts Options, f diff.File) (fileResult, erro
 			continue
 		}
 		loc := locations[name]
-		if loc == nil {
+		if loc == nil && !f.Unlocated {
 			loc = unitLocation(units[b.unit].input)
 		}
 		cls := top(b.probs)

@@ -41,7 +41,7 @@ type hookFlags struct {
 func parseHookFlags(name string, args []string, stderr io.Writer, withTop bool) (hookFlags, error) {
 	var f hookFlags
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	fs.SetOutput(stderr)
+	fs.SetOutput(io.Discard) // hooks stay silent; errors surface via TRAITS_HOOK_DEBUG
 	fs.StringVar(&f.provider, "provider", env("TRAITS_PROVIDER", ""), "decision-model provider (default openai)")
 	fs.StringVar(&f.model, "model", env("TRAITS_MODEL", ""), "model name")
 	fs.StringVar(&f.rules, "rules", env("TRAITS_DIR", ""), "traits directory")

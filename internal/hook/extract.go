@@ -82,19 +82,24 @@ func editChange(abs string, edits []edit, read ReadFile) []Change {
 		return nil
 	}
 	cur := string(data)
-	old, ok := undo(cur, edits)
-	if !ok {
-		return nil
+	if old, ok := undo(cur, edits); ok {
+		f := diff.Synthetic(abs, old, cur, contextLines)
+		if len(f.Hunks) == 0 {
+			return nil
+		}
+		return []Change{{Abs: abs, File: f}}
 	}
-	f := diff.Synthetic(abs, old, cur, contextLines)
+	f := unlocated(abs, edits)
 	if len(f.Hunks) == 0 {
 		return nil
 	}
 	return []Change{{Abs: abs, File: f}}
 }
 
-// undo reverses edits (applied in order) on cur. It fails when an edit's new
-// text is empty or absent: its position cannot be recovered.
+// undo reverses edits (applied in order) on cur. It fails unless every
+// edit's position is certain: its new text is non-empty and occurs exactly
+// once, and it is not a replace-all (which cannot tell its own replacements
+// from pre-existing matches).
 func undo(cur string, edits []edit) (string, bool) {
 	if len(edits) == 0 {
 		return "", false
@@ -102,16 +107,23 @@ func undo(cur string, edits []edit) (string, bool) {
 	s := cur
 	for i := len(edits) - 1; i >= 0; i-- {
 		e := edits[i]
-		if e.NewString == "" || !strings.Contains(s, e.NewString) {
+		if e.ReplaceAll || e.NewString == "" || strings.Count(s, e.NewString) != 1 {
 			return "", false
 		}
-		if e.ReplaceAll {
-			s = strings.ReplaceAll(s, e.NewString, e.OldString)
-		} else {
-			s = strings.Replace(s, e.NewString, e.OldString, 1)
-		}
+		s = strings.Replace(s, e.NewString, e.OldString, 1)
 	}
 	return s, true
+}
+
+// unlocated builds a diff from the edits' own old and new text, for edits
+// whose position in the file is unknown. Its line numbers are relative to
+// each edit, so the file is marked Unlocated.
+func unlocated(abs string, edits []edit) diff.File {
+	f := diff.File{OldPath: abs, NewPath: abs, Unlocated: true}
+	for _, e := range edits {
+		f.Hunks = append(f.Hunks, diff.Synthetic(abs, e.OldString, e.NewString, contextLines).Hunks...)
+	}
+	return f
 }
 
 // Codex extracts the changes from a Codex PostToolUse payload for
@@ -187,7 +199,7 @@ func patchChange(abs string, fp FilePatch, read ReadFile) (Change, bool) {
 			return Change{Abs: abs, File: f}, true
 		}
 	}
-	f := diff.File{OldPath: abs, NewPath: abs}
+	f := diff.File{OldPath: abs, NewPath: abs, Unlocated: true}
 	oldNo, newNo := 1, 1
 	for _, c := range fp.Chunks {
 		h := diff.Hunk{OldStart: oldNo, NewStart: newNo}
