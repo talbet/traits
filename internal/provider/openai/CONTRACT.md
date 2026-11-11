@@ -2,9 +2,19 @@
 
 Checked 2026-11-11 against the API reference
 (https://developers.openai.com/api/reference/resources/decisions/methods/create)
-and the guide (https://developers.openai.com/api/docs/guides/decisions). No live
-call was made; the fixtures in `testdata/` are hand-written from the documented
-shapes and the guide's illustrative example (damaged / department / severity).
+and the guide (https://developers.openai.com/api/docs/guides/decisions).
+
+**Live-verified 2026-11-11** with three real `gpt-6-luna` calls, recorded in
+`testdata/live/` (request bodies and raw responses; no headers or keys) and
+replayed by `TestReplayLive`. Re-record with
+`TRAITS_RECORD_LIVE=1 OPENAI_API_KEY=... go test ./internal/provider/openai -run TestRecordLive`.
+The live calls confirmed: the `input_json` user-message input; choice
+`probabilities` as an array of `{value, probability}`; score `probabilities` as
+`{value: index, label, probability}` with `score` the weighted index; predicate
+`probability`; names echoed in order; question names containing `:` and `/`
+accepted; `usage.input_tokens_details.{cached_tokens, cache_write_tokens}`
+present; `output_tokens` 0. The other fixtures in `testdata/` are hand-written
+edge cases.
 
 ## Confirmed (reference or guide)
 
@@ -35,9 +45,8 @@ shapes and the guide's illustrative example (damaged / department / severity).
 
 ## Assumed / chosen here
 
-- Question `name` is sent as `provider.Question.Name` unchanged. The reference
-  states no character set or length limit for it; if the API rejects names with
-  `/` or similar, switch to positional names (q0, ...) as System One does.
+- Question `name` is sent as `provider.Question.Name` unchanged. Names with `:`
+  and `/` were accepted live; no length limit is documented.
 - `prompt_cache_key` longer than 64 characters is replaced by its SHA-256 hex
   (64 characters) rather than rejected.
 - `probabilities` is also accepted as an object map (`{value-or-label-or-index:

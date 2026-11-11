@@ -1,0 +1,119 @@
+{
+  "recorded": "2026-11-11T04:39:20Z",
+  "questions": [
+    {
+      "Name": "locate:no-debug-prints",
+      "Type": "choice",
+      "Instructions": "This change to input.path likely violates this trait:\n{\"name\":\"no-debug-prints\",\"subject\":\"Debugging output left in code.\",\"requirement\":\"Do not leave fmt.Println debugging statements in committed code.\"}\nWhich hunk in input.hunks most clearly shows the violation?",
+      "Options": [
+        {
+          "Value": "h1",
+          "Description": "line 6"
+        },
+        {
+          "Value": "h2",
+          "Description": "line 25"
+        }
+      ]
+    }
+  ],
+  "request": {
+    "model": "gpt-6-luna",
+    "input": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "input_json",
+            "data": {
+              "path": "main.go",
+              "language": "go",
+              "hunks": [
+                {
+                  "id": "h1",
+                  "oldStart": 3,
+                  "newStart": 3,
+                  "header": "import \"fmt\"",
+                  "lines": [
+                    " 3| func load(path string) ([]byte, error) {",
+                    " 4| \tdata, err := os.ReadFile(path)",
+                    " 5| \tif err != nil {",
+                    "+6| \t\tfmt.Println(\"load failed\", path)",
+                    " 7| \t\treturn nil, err",
+                    " 8| \t}",
+                    " 9| \treturn data, nil"
+                  ]
+                },
+                {
+                  "id": "h2",
+                  "oldStart": 20,
+                  "newStart": 21,
+                  "header": "func main() {",
+                  "lines": [
+                    " 21| \tcfg, err := load(\"config.json\")",
+                    " 22| \tif err != nil {",
+                    " 23| \t\tlog.Fatal(err)",
+                    " 24| \t}",
+                    "+25| \tfmt.Println(\"config:\", string(cfg))",
+                    " 26| }"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "questions": [
+      {
+        "type": "choice",
+        "name": "locate:no-debug-prints",
+        "instructions": "This change to input.path likely violates this trait:\n{\"name\":\"no-debug-prints\",\"subject\":\"Debugging output left in code.\",\"requirement\":\"Do not leave fmt.Println debugging statements in committed code.\"}\nWhich hunk in input.hunks most clearly shows the violation?",
+        "choices": [
+          {
+            "value": "h1",
+            "description": "line 6"
+          },
+          {
+            "value": "h2",
+            "description": "line 25"
+          }
+        ]
+      }
+    ],
+    "prompt_cache_key": "traits-live-fixture"
+  },
+  "response": {
+    "model": "gpt-6-luna",
+    "answers": [
+      {
+        "type": "choice",
+        "name": "locate:no-debug-prints",
+        "choice": "h1",
+        "probabilities": [
+          {
+            "value": "h1",
+            "probability": 1.0
+          },
+          {
+            "value": "h2",
+            "probability": 0.0
+          }
+        ],
+        "confidence": 1.0
+      }
+    ],
+    "usage": {
+      "input_tokens": 377,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": 0
+      },
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "total_tokens": 377
+    }
+  }
+}
